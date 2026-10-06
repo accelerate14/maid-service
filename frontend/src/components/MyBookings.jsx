@@ -3,6 +3,7 @@ import api from '../api';
 import Card from './ui/Card';
 import Loader from './ui/Loader';
 import Leaflet from './Leaflet';
+import { formatINR } from '../utils/currency';
 
 const MyBookings = () => {
   const [bookings, setBookings] = useState([]);
@@ -117,7 +118,7 @@ const MyBookings = () => {
                   <span className={`w-1.5 h-1.5 rounded-full ${sc.dot}`}></span>
                   {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
                 </span>
-                <span className="font-heading text-lg font-bold text-slate-900">${booking.price}</span>
+                <span className="font-heading text-lg font-bold text-slate-900">{formatINR(booking.price)}</span>
               </div>
             </Card>
           );

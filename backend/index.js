@@ -2,10 +2,12 @@ const express = require('express');
 const cors = require('cors');
 const morgan = require('morgan');
 require('dotenv').config();
+const razorpay = require('razorpay');
 
 const authRoutes = require('./src/routes/auth');
 const customerRoutes = require('./src/routes/customer');
 const adminRoutes = require('./src/routes/admin');
+const orderRoutes = require('./src/routes/order');
 const db = require('./src/db');
 
 const app = express();
@@ -20,15 +22,20 @@ app.use(morgan('dev')); // Backend logging
 app.use('/api/auth', authRoutes);
 app.use('/api/customer', customerRoutes.router);
 app.use('/api/admin', adminRoutes);
+app.use('/api/order', orderRoutes);
 
 async function ensureSchemaColumns() {
   try {
     const [userColumns] = await db.query(`
-      SELECT COLUMN_NAME
+      SELECT COLUMN_NAME, IS_NULLABLE
       FROM INFORMATION_SCHEMA.COLUMNS
       WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'users'
     `);
     const usersColumnNames = userColumns.map((column) => column.COLUMN_NAME);
+    const passwordHashColumn = userColumns.find((column) => column.COLUMN_NAME === 'password_hash');
+    if (passwordHashColumn?.IS_NULLABLE === 'NO') {
+      await db.query('ALTER TABLE users MODIFY COLUMN password_hash VARCHAR(255) NULL');
+    }
     if (!usersColumnNames.includes('reset_token_hash')) {
       await db.query('ALTER TABLE users ADD COLUMN reset_token_hash VARCHAR(255) NULL');
     }

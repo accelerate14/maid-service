@@ -110,7 +110,11 @@ const Register = () => {
             <Button type="submit" fullWidth isLoading={loading} className="mt-2">
               Create Account
             </Button>
-            <GoogleAuth mode="signUp" />
+            <GoogleAuth
+              mode="signUp"
+              phoneNumber={formData.phone}
+              address={formData.address}
+            />
 
             <div className="text-center text-sm pt-2">
               <span className="text-slate-500">Already have an account? </span>

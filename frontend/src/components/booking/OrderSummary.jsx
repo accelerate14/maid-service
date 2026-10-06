@@ -1,4 +1,5 @@
 import React from 'react';
+import { formatINR } from '../../utils/currency';
 
 const OrderSummary = ({ service, selectedSubServices, schedule, provider, address, onRemoveSubService }) => {
   const total = selectedSubServices.reduce((sum, s) => sum + parseFloat(s.price), 0);
@@ -26,7 +27,7 @@ const OrderSummary = ({ service, selectedSubServices, schedule, provider, addres
             {selectedSubServices.map(sub => (
               <div key={sub.id} className="flex items-center justify-between group">
                 <span className="text-sm text-slate-700 flex-1">{sub.name}</span>
-                <span className="text-sm font-semibold text-slate-800 mr-2">${parseFloat(sub.price).toFixed(2)}</span>
+                <span className="text-sm font-semibold text-slate-800 mr-2">{formatINR(sub.price)}</span>
                 {onRemoveSubService && (
                   <button
                     onClick={() => onRemoveSubService(sub.id)}
@@ -76,7 +77,7 @@ const OrderSummary = ({ service, selectedSubServices, schedule, provider, addres
       {/* Total */}
       <div className="flex items-center justify-between pt-2">
         <span className="font-heading font-semibold text-slate-600">Total</span>
-        <span className="font-heading text-2xl font-bold text-primary">${total.toFixed(2)}</span>
+        <span className="font-heading text-2xl font-bold text-primary">{formatINR(total)}</span>
       </div>
 
       {selectedSubServices.length === 0 && (
