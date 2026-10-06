@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import api from '../api';
 import Button from './ui/Button';
 import Input from './ui/Input';
+import { formatINR } from '../utils/currency';
 
 const BookingModal = ({ service, onClose }) => {
   const [date, setDate] = useState('');
@@ -53,7 +54,7 @@ const BookingModal = ({ service, onClose }) => {
           </button>
           <h2 className="font-heading text-xl font-bold">Book {service.name}</h2>
           <p className="text-emerald-100 text-sm mt-1">
-            Total: <span className="font-bold text-white text-lg">${service.price}</span>
+            Total: <span className="font-bold text-white text-lg">{formatINR(service.price)}</span>
           </p>
         </div>
 

@@ -20,12 +20,12 @@ const steps = [
 const BookingWizard = () => {
   const { serviceId } = useParams();
   const navigate = useNavigate();
-  
+
   const [currentStep, setCurrentStep] = useState(0);
   const [loading, setLoading] = useState(true);
   const [submitLoading, setSubmitLoading] = useState(false);
   const [service, setService] = useState(null);
-  
+
   // Booking State
   const [selectedSubServices, setSelectedSubServices] = useState([]);
   const [schedule, setSchedule] = useState({ date: '', time: '' });
@@ -80,7 +80,7 @@ const BookingWizard = () => {
       setError('Please select a provider');
       return;
     }
-    
+
     setError('');
     setCurrentStep(prev => Math.min(prev + 1, steps.length - 1));
   };
@@ -90,16 +90,23 @@ const BookingWizard = () => {
     setCurrentStep(prev => Math.max(prev - 1, 0));
   };
 
-  const handleConfirmBooking = async (paymentMethod) => {
+  const handleConfirmBooking = async (paymentMethod, paymentData, paymentConfirmed) => {
     setSubmitLoading(true);
     setError('');
 
+    if (!paymentConfirmed) {
+      setError('Payment not confirmed. Please complete the payment to proceed.');
+      setSubmitLoading(false);
+      return;
+    }
+    
     const payload = {
       service_id: parseInt(serviceId),
       sub_service_ids: selectedSubServices.map(s => s.id),
       scheduled_date: schedule.date,
       scheduled_time: schedule.time,
       payment_method: paymentMethod,
+      transaction_id: paymentData?.razorpay_payment_id || null,
       provider_id: provider.id,
       address,
       address_lat: null,
@@ -132,7 +139,7 @@ const BookingWizard = () => {
         {/* Progress Header */}
         <div className="mb-10">
           <div className="flex items-center justify-between mb-4">
-            <button 
+            <button
               onClick={() => navigate('/dashboard')}
               className="flex items-center gap-2 text-sm font-medium text-slate-500 hover:text-slate-800 transition-colors"
             >
@@ -143,7 +150,7 @@ const BookingWizard = () => {
               Step {currentStep + 1} of {steps.length}
             </div>
           </div>
-          
+
           <div className="flex items-center gap-2">
             {steps.map((step, i) => (
               <React.Fragment key={step.id}>
@@ -168,14 +175,14 @@ const BookingWizard = () => {
 
             <div className="bg-white rounded-3xl p-8 shadow-sm border border-slate-200/50 min-h-[500px]">
               {currentStep === 0 && (
-                <StepSubServices 
-                  serviceId={serviceId} 
+                <StepSubServices
+                  serviceId={serviceId}
                   selectedSubServices={selectedSubServices}
                   onToggle={toggleSubService}
                 />
               )}
               {currentStep === 1 && (
-                <StepSchedule 
+                <StepSchedule
                   schedule={schedule}
                   onDateChange={(date) => setSchedule({ ...schedule, date })}
                   onTimeChange={(time) => setSchedule({ ...schedule, time })}
@@ -184,24 +191,26 @@ const BookingWizard = () => {
                 />
               )}
               {currentStep === 2 && (
-                <StepProvider 
+                <StepProvider
                   selectedProvider={provider}
                   onSelect={setProvider}
                 />
               )}
               {currentStep === 3 && (
-                <StepPayment 
+                <StepPayment
                   onConfirm={handleConfirmBooking}
                   loading={submitLoading}
+                  serviceId={parseInt(serviceId)}
+                  selectedSubServices={selectedSubServices}
                 />
               )}
             </div>
 
             {/* Navigation Buttons */}
             <div className="flex items-center justify-between pt-4">
-              <Button 
-                variant="outline" 
-                onClick={handleBack} 
+              <Button
+                variant="outline"
+                onClick={handleBack}
                 disabled={currentStep === 0}
                 className={currentStep === 0 ? 'invisible' : ''}
               >
@@ -218,7 +227,7 @@ const BookingWizard = () => {
 
           {/* Sidebar Summary */}
           <div className="lg:col-span-1">
-            <OrderSummary 
+            <OrderSummary
               service={service}
               selectedSubServices={selectedSubServices}
               schedule={schedule}

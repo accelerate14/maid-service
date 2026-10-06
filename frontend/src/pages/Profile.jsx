@@ -21,7 +21,7 @@ const Profile = () => {
       try {
         const response = await api.get('/auth/profile', {
           headers: {
-            Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
+            'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
           },
         });
         const fetched = response.data.user;

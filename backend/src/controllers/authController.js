@@ -3,6 +3,7 @@ const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const nodemailer = require('nodemailer');
 const db = require('../db');
+const { getFirebaseAuth } = require('../firebaseAdmin');
 
 const register = async (req, res) => {
   try {
@@ -31,11 +32,27 @@ const register = async (req, res) => {
 
 const googleAuth = async (req, res) => {
   try {
-    const { name, email, phone, address, address_lat, address_lng } = req.body;
+    const { idToken, phone, address, address_lat, address_lng } = req.body;
+    const firebaseAuth = getFirebaseAuth();
+    let identity;
 
-    if (!email) {
-      return res.status(400).json({ error: 'Email is required' });
+    try {
+      identity = await firebaseAuth.verifyIdToken(idToken);
+    } catch (error) {
+      console.warn('[AuthController Google Auth] Firebase ID token verification failed:', error.message);
+      return res.status(401).json({ error: 'Google sign-in could not be verified. Please try again.' });
     }
+
+    if (
+      identity.firebase?.sign_in_provider !== 'google.com' ||
+      !identity.email ||
+      identity.email_verified !== true
+    ) {
+      return res.status(401).json({ error: 'A verified Google account is required' });
+    }
+
+    const email = identity.email;
+    const name = identity.name || email.split('@')[0];
 
     // 1. Fetch user along with role name
     const [existingUsers] = await db.query(
@@ -135,6 +152,11 @@ const login = async (req, res) => {
     if (users.length === 0) return res.status(401).json({ error: 'Invalid credentials' });
 
     const user = users[0];
+    if (!user.password_hash) {
+      return res.status(401).json({
+        error: 'This account uses Google sign-in. Please continue with Google.'
+      });
+    }
     const isMatch = await bcrypt.compare(password, user.password_hash);
     if (!isMatch) return res.status(401).json({ error: 'Invalid credentials' });
 

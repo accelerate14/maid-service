@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../api';
 import Loader from '../ui/Loader';
+import { formatINR } from '../../utils/currency';
 
 const StepSubServices = ({ serviceId, selectedSubServices, onToggle }) => {
   const [subServices, setSubServices] = useState([]);
@@ -54,7 +55,7 @@ const StepSubServices = ({ serviceId, selectedSubServices, onToggle }) => {
                 </div>
                 <div className="flex flex-col items-end ml-4 flex-shrink-0">
                   <span className={`font-heading text-lg font-bold ${selected ? 'text-primary' : 'text-slate-700'}`}>
-                    ${parseFloat(sub.price).toFixed(2)}
+                    {formatINR(sub.price)}
                   </span>
                   <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center mt-2 transition-all ${
                     selected 

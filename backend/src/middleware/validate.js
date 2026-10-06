@@ -11,8 +11,7 @@ const schemas = {
     address_lng: Joi.number().optional().allow(null)
   }),
   googleAuth: Joi.object({
-    name: Joi.string().min(3).max(100),
-    email: Joi.string().email().required(),
+    idToken: Joi.string().required(),
     phone: Joi.string().min(10).max(20).optional().allow('', null),
     address: Joi.string().min(5).max(255).optional().allow('', null),
     address_lat: Joi.number().optional().allow(null),
@@ -47,10 +46,15 @@ const schemas = {
     scheduled_date: Joi.date().iso().required(),
     scheduled_time: Joi.string().pattern(/^([01]\d|2[0-3]):?([0-5]\d)$/).required(),
     payment_method: Joi.string().valid('dummy_gateway', 'cod').required(),
+    transaction_id: Joi.string().max(255).optional().allow(null),
     provider_id: Joi.number().required(),
     address: Joi.string().min(5).max(255).required(),
     address_lat: Joi.number().optional().allow(null),
     address_lng: Joi.number().optional().allow(null)
+  }),
+  createOrder: Joi.object({
+    service_id: Joi.number().integer().positive().required(),
+    sub_service_ids: Joi.array().items(Joi.number().integer().positive()).min(1).unique().required()
   }),
   assignProvider: Joi.object({
     provider_id: Joi.number().required()

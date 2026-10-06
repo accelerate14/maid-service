@@ -88,7 +88,7 @@ const getProviderDetails = async (req, res) => {
 
 const createBooking = async (req, res) => {
   try {
-    const { service_id, sub_service_ids, scheduled_date, scheduled_time, payment_method, provider_id, address, address_lat, address_lng } = req.body;
+    const { service_id, sub_service_ids, scheduled_date, scheduled_time, payment_method, transaction_id, provider_id, address, address_lat, address_lng } = req.body;
     const customer_id = req.user.id;
 
     // Calculate total from sub-services only
@@ -123,11 +123,13 @@ const createBooking = async (req, res) => {
 
       // Insert payment
       const paymentStatus = payment_method === 'dummy_gateway' ? 'paid' : 'pending';
-      const transaction_id = payment_method === 'dummy_gateway' ? `TXN_${Date.now()}_${Math.floor(Math.random() * 1000)}` : null;
+      const paymentTransactionId = payment_method === 'dummy_gateway'
+        ? transaction_id || `TXN_${Date.now()}_${Math.floor(Math.random() * 1000)}`
+        : null;
 
       await conn.query(
         'INSERT INTO payments (booking_id, amount, payment_method, status, transaction_id) VALUES (?, ?, ?, ?, ?)',
-        [booking_id, amount, payment_method, paymentStatus, transaction_id]
+        [booking_id, amount, payment_method, paymentStatus, paymentTransactionId]
       );
 
       await conn.commit();

@@ -1,20 +1,24 @@
 import React, { useState } from 'react';
 import Button from '../ui/Button';
+import api from '../../api';
+import { formatINR } from '../../utils/currency';
 
-const StepPayment = ({ onConfirm, loading }) => {
+const StepPayment = ({ onConfirm, loading, serviceId, selectedSubServices }) => {
   const [paymentMethod, setPaymentMethod] = useState('dummy_gateway');
+  const [submitLoading, setSubmitLoading] = useState(false);
+  const total = selectedSubServices.reduce((sum, subService) => sum + Number(subService.price), 0);
 
   const methods = [
-    { 
-      id: 'dummy_gateway', 
+    {
+      id: 'dummy_gateway',
       label: 'Credit / Debit Card',
       desc: 'Pay securely with your card (Demo)',
       icon: (
         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>
       )
     },
-    { 
-      id: 'cod', 
+    {
+      id: 'cod',
       label: 'Cash on Delivery',
       desc: 'Pay in cash when the cleaner arrives',
       icon: (
@@ -23,11 +27,84 @@ const StepPayment = ({ onConfirm, loading }) => {
     }
   ];
 
+  const openRazorpayCheckout = (key, amount, id) => {
+    const options = {
+      key: key, // Enter the Key ID generated from the Dashboard
+      amount: amount, // Amount is in currency subunits.
+      currency: "INR",
+      name: "Shivansh Srivastav", //your business name
+      description: "Test Transaction",
+      image: "https://cdn-icons-png.flaticon.com/128/8983/8983163.png",
+      order_id: id, //This is a sample Order ID. Pass the `id` obtained in the response of Step 1
+      handler: async function (response) {
+        try {
+          const paymentVerificationData = {
+            razorpay_order_id: response.razorpay_order_id,
+            razorpay_payment_id: response.razorpay_payment_id,
+            razorpay_signature: response.razorpay_signature
+          };
+          const { data: verifyResponse } = await api.post('/order/verify-payment', paymentVerificationData);
+
+          if (verifyResponse.success) {
+            await onConfirm('dummy_gateway', paymentVerificationData, true);
+          } else {
+            alert(`Payment verification failed: ${verifyResponse.error || 'Unknown error'}`);
+          }
+        } catch (error) {
+          console.error('Error verifying payment:', error);
+          alert(`Payment verification failed: ${error.response?.data?.error || error.message}`);
+        }
+      },
+      prefill: { //We recommend using the prefill parameter to auto-fill customer's contact information, especially their phone number
+        "name": "Shivansh Srivastav", //your customer's name
+        "email": "shivanshsrivastav@example.com",
+        "contact": "9336690883"  //Provide the customer's phone number for better conversion rates 
+      },
+      notes: {
+        "address": "Tukaram Tupe Nagar, Pune" //This is a sample address. Pass the customer's actual address in the notes parameter
+      },
+      theme: {
+        "color": "#3399cc"
+      }
+    }
+
+    const rzp = new window.Razorpay(options);
+
+    rzp.on('payment.failed', function (paymentFailure) {
+      alert(`Payment failed: ${paymentFailure.error.description || paymentFailure.error.code}`);
+    });
+
+    rzp.open();
+
+  }
+
+  const handlePayment = async () => {
+    try {
+      setSubmitLoading(true);
+      if (paymentMethod === 'cod') {
+        await onConfirm('cod', null, true);
+        return;
+      }
+
+      const { data: order } = await api.post('/order/create-order', {
+        service_id: serviceId,
+        sub_service_ids: selectedSubServices.map((subService) => subService.id),
+      });
+      openRazorpayCheckout(order.key, order.amount, order.id);
+    } catch (error) {
+      console.error('Error creating order:', error);
+      alert(`Unable to create payment order: ${error.response?.data?.error || error.message}`);
+    } finally {
+      setSubmitLoading(false);
+    }
+  };
+
   return (
     <div>
       <div className="mb-6">
         <h2 className="font-heading text-2xl font-bold text-slate-900">Payment</h2>
         <p className="text-sm text-slate-500 mt-1">Choose your payment method and confirm your booking</p>
+        <p className="text-sm font-semibold text-slate-700 mt-2">Amount due: {formatINR(total)}</p>
       </div>
 
       <div className="space-y-4 mb-8">
@@ -41,9 +118,8 @@ const StepPayment = ({ onConfirm, loading }) => {
                 : 'border-slate-200 bg-white hover:border-slate-300'
               }`}
           >
-            <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${
-              paymentMethod === m.id ? 'bg-primary text-white' : 'bg-slate-100 text-slate-500'
-            } transition-colors`}>
+            <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${paymentMethod === m.id ? 'bg-primary text-white' : 'bg-slate-100 text-slate-500'
+              } transition-colors`}>
               {m.icon}
             </div>
             <div className="flex-1">
@@ -52,9 +128,8 @@ const StepPayment = ({ onConfirm, loading }) => {
               </h4>
               <p className="text-sm text-slate-500 mt-0.5">{m.desc}</p>
             </div>
-            <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all ${
-              paymentMethod === m.id ? 'border-primary bg-primary' : 'border-slate-300'
-            }`}>
+            <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all ${paymentMethod === m.id ? 'border-primary bg-primary' : 'border-slate-300'
+              }`}>
               {paymentMethod === m.id && (
                 <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" />
@@ -85,8 +160,8 @@ const StepPayment = ({ onConfirm, loading }) => {
         </div>
       )}
 
-      <Button onClick={() => onConfirm(paymentMethod)} fullWidth isLoading={loading} size="lg">
-        Confirm & Pay
+      <Button onClick={handlePayment} fullWidth isLoading={submitLoading || loading} size="lg">
+        {submitLoading ? 'Processing...' : paymentMethod === 'cod' ? 'Confirm Booking' : 'Confirm & Pay'}
       </Button>
     </div>
   );
